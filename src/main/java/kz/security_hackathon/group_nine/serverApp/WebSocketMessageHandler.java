@@ -39,7 +39,11 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
     }
 
     private void sendMessageToClient(WebSocketSession client, String encryptedMessage) throws IOException {
-        client.sendMessage(new TextMessage(encryptedMessage)); // Отправляем сообщение клиенту
-        System.out.println("Отправка сообщения клиенту [" + client.getRemoteAddress() + "]: " + encryptedMessage);
+        if (client.isOpen()) { // Проверяем, открыто ли соединение
+            client.sendMessage(new TextMessage(encryptedMessage)); // Отправляем сообщение клиенту
+            System.out.println("Отправка сообщения клиенту [" + client.getRemoteAddress() + "]: " + encryptedMessage);
+        } else {
+            System.out.println("Не удалось отправить сообщение. Клиент [" + client.getRemoteAddress() + "] отключён.");
+        }
     }
 }
