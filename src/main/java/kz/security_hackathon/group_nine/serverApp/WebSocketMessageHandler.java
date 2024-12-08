@@ -17,7 +17,6 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
     private static final byte[] iv;
 
     static {
-        // Генерируем общий секретный ключ и IV при запуске сервера
         secretKey = generateSecretKey();
         iv = generateIV();
         System.out.println("Общий IV: " + Base64.getEncoder().encodeToString(iv));
@@ -26,7 +25,6 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // Отправляем клиенту общий IV и ключ
         String ivBase64 = Base64.getEncoder().encodeToString(iv);
         String keyBase64 = Base64.getEncoder().encodeToString(secretKey.getEncoded());
 
@@ -42,16 +40,17 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
         String encryptedMessage = message.getPayload();
         System.out.println("Получено зашифрованное сообщение: " + encryptedMessage);
 
-        // Передаём сообщение всем клиентам (включая отправителя)
         for (WebSocketSession client : connectedClients) {
-            sendMessageToClient(client, encryptedMessage);
+            if (!client.equals(session)) {
+                sendMessageToClient(client, encryptedMessage);
+            }
         }
     }
 
     private static SecretKey generateSecretKey() {
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-            keyGen.init(128); // Генерируем 128-битный ключ
+            keyGen.init(128);
             return keyGen.generateKey();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -59,7 +58,7 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
     }
 
     private static byte[] generateIV() {
-        byte[] iv = new byte[16]; // IV для AES 128 (16 байт)
+        byte[] iv = new byte[16];
         new SecureRandom().nextBytes(iv);
         return iv;
     }
