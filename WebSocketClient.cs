@@ -22,9 +22,8 @@ class WebSocketClient
         await _client.ConnectAsync(new Uri(serverUrl), CancellationToken.None);
         Console.WriteLine("Соединение установлено!");
 
-        await ReceiveKeyAndIV();
+        await ReceiveKey();
 
-        // Запуск асинхронного прослушивания сообщений от сервера
         _ = Task.Run(ListenForMessages);
 
         while (true)
@@ -39,43 +38,36 @@ class WebSocketClient
             string message = Console.ReadLine();
             if (message.Equals("exit", StringComparison.OrdinalIgnoreCase)) break;
 
-            string encryptedMessage = EncryptMessage(message);
-            await SendMessage(encryptedMessage);
+            string encryptedMessage = EncryptMessage(message, out string ivBase64);
+            string finalMessage = $"IV:{ivBase64}:MSG:{encryptedMessage}";
+            await SendMessage(finalMessage);
         }
 
         await _client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие соединения", CancellationToken.None);
     }
 
-    /// <summary>
-    /// Метод для получения ключа и IV от сервера.
-    /// </summary>
-    private static async Task ReceiveKeyAndIV()
+    private static async Task ReceiveKey()
     {
         byte[] buffer = new byte[1024];
         var result = await _client.ReceiveAsync(buffer, CancellationToken.None);
         string keyMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
 
-        if (keyMessage.StartsWith("IV:"))
+        if (keyMessage.StartsWith("KEY:"))
         {
-            string[] parts = keyMessage.Split(':');
-            byte[] ivBytes = Convert.FromBase64String(parts[1]);
-            byte[] keyBytes = Convert.FromBase64String(parts[3]);
+            string keyBase64 = keyMessage.Substring(4);
+            byte[] keyBytes = Convert.FromBase64String(keyBase64);
 
             _aes = Aes.Create();
             _aes.Key = keyBytes;
-            _aes.IV = ivBytes;
 
             _isKeyReceived = true;
+            Console.WriteLine("Ключ получен.");
         }
     }
 
-    /// <summary>
-    /// Асинхронный метод для прослушивания сообщений от сервера.
-    /// </summary>
     private static async Task ListenForMessages()
     {
         byte[] buffer = new byte[1024];
-
         while (_client.State == WebSocketState.Open)
         {
             try
@@ -87,55 +79,48 @@ class WebSocketClient
                     break;
                 }
 
-                string encryptedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                Console.WriteLine("Получено зашифрованное сообщение от сервера: " + encryptedMessage);
+                string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                Console.WriteLine("Получено сообщение: " + receivedMessage);
 
-                if (_isKeyReceived)
+                string[] parts = receivedMessage.Split(":");
+                if (parts.Length == 4 && parts[0] == "IV" && parts[2] == "MSG")
                 {
-                    try
-                    {
-                        string decryptedMessage = DecryptMessage(encryptedMessage);
-                        Console.WriteLine("Расшифрованное сообщение: " + decryptedMessage);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Ошибка расшифровки: " + ex.Message);
-                    }
+                    string ivBase64 = parts[1];
+                    string encryptedMessage = parts[3];
+                    string decryptedMessage = DecryptMessage(encryptedMessage, ivBase64);
+                    Console.WriteLine("Расшифрованное сообщение: " + decryptedMessage);
                 }
             }
-            catch (WebSocketException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine("Ошибка WebSocket: " + ex.Message);
-                break;
+                Console.WriteLine("Ошибка при обработке сообщения: " + ex.Message);
             }
         }
     }
 
-    /// <summary>
-    /// Метод для шифрования сообщений.
-    /// </summary>
-    private static string EncryptMessage(string message)
+    private static string EncryptMessage(string message, out string ivBase64)
     {
+        _aes.GenerateIV();
+        ivBase64 = Convert.ToBase64String(_aes.IV);
+
         using var encryptor = _aes.CreateEncryptor();
         byte[] plainBytes = Encoding.UTF8.GetBytes(message);
         byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+
         return Convert.ToBase64String(encryptedBytes);
     }
 
-    /// <summary>
-    /// Метод для расшифровки сообщений.
-    /// </summary>
-    private static string DecryptMessage(string encryptedMessage)
+    private static string DecryptMessage(string encryptedMessage, string ivBase64)
     {
+        byte[] ivBytes = Convert.FromBase64String(ivBase64);
         byte[] encryptedBytes = Convert.FromBase64String(encryptedMessage);
-        using var decryptor = _aes.CreateDecryptor();
+
+        using var decryptor = _aes.CreateDecryptor(_aes.Key, ivBytes);
         byte[] decryptedBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
+
         return Encoding.UTF8.GetString(decryptedBytes);
     }
 
-    /// <summary>
-    /// Метод для отправки сообщений серверу.
-    /// </summary>
     private static async Task SendMessage(string message)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(message);
