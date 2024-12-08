@@ -1,5 +1,6 @@
 package kz.security_hackathon.group_nine.serverApp;
 
+import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -14,35 +15,36 @@ import java.security.SecureRandom;
 public class WebSocketMessageHandler extends TextWebSocketHandler {
     private static final Set<WebSocketSession> connectedClients = new HashSet<>();
     private static final SecretKey secretKey;
-    private static final byte[] iv;
 
     static {
         secretKey = generateSecretKey();
-        iv = generateIV();
-        System.out.println("Общий IV: " + Base64.getEncoder().encodeToString(iv));
         System.out.println("Общий ключ: " + Base64.getEncoder().encodeToString(secretKey.getEncoded()));
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String ivBase64 = Base64.getEncoder().encodeToString(iv);
         String keyBase64 = Base64.getEncoder().encodeToString(secretKey.getEncoded());
+        String message = "KEY:" + keyBase64;
 
-        String message = "IV:" + ivBase64 + ":KEY:" + keyBase64;
         sendMessageToClient(session, message);
-
         connectedClients.add(session);
         System.out.println("Клиент подключён: " + session.getRemoteAddress());
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String encryptedMessage = message.getPayload();
-        System.out.println("Получено зашифрованное сообщение: " + encryptedMessage);
+        String receivedMessage = message.getPayload();
+        System.out.println("Получено сообщение: " + receivedMessage);
 
-        for (WebSocketSession client : connectedClients) {
-            if (!client.equals(session)) {
-                sendMessageToClient(client, encryptedMessage);
+        String[] parts = receivedMessage.split(":");
+        if (parts.length == 4 && parts[0].equals("IV") && parts[2].equals("MSG")) {
+            String ivBase64 = parts[1];
+            String encryptedMessage = parts[3];
+
+            for (WebSocketSession client : connectedClients) {
+                if (!client.equals(session)) {
+                    sendMessageToClient(client, receivedMessage);
+                }
             }
         }
     }
@@ -55,12 +57,6 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static byte[] generateIV() {
-        byte[] iv = new byte[16];
-        new SecureRandom().nextBytes(iv);
-        return iv;
     }
 
     private void sendMessageToClient(WebSocketSession client, String message) throws IOException {
