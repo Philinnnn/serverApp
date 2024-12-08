@@ -1,0 +1,2 @@
+C:\Users\Arman\Desktop\clientSharp\bin\Release\net8.0\win-x64\publish\clientSharp.pdb
+C:\Users\Arman\Desktop\clientSharp\bin\Release\net8.0\win-x64\publish\clientSharp.exe

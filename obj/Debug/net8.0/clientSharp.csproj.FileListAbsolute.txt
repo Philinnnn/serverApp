@@ -1,0 +1,14 @@
+C:\Users\Arman\Desktop\clientSharp\bin\Debug\net8.0\clientSharp.exe
+C:\Users\Arman\Desktop\clientSharp\bin\Debug\net8.0\clientSharp.deps.json
+C:\Users\Arman\Desktop\clientSharp\bin\Debug\net8.0\clientSharp.runtimeconfig.json
+C:\Users\Arman\Desktop\clientSharp\bin\Debug\net8.0\clientSharp.dll
+C:\Users\Arman\Desktop\clientSharp\bin\Debug\net8.0\clientSharp.pdb
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.AssemblyInfoInputs.cache
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.AssemblyInfo.cs
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.csproj.CoreCompileInputs.cache
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.dll
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\refint\clientSharp.dll
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.pdb
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\clientSharp.genruntimeconfig.cache
+C:\Users\Arman\Desktop\clientSharp\obj\Debug\net8.0\ref\clientSharp.dll
